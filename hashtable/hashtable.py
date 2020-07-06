@@ -57,6 +57,13 @@ class HashTable:
         """
 
         # Your code here
+        hval = "0x811c9dc5"
+        fnv_32_prime = "0x01000193"
+        uint32_max = 2 ** 32
+        for s in key:
+            hval = hval ** ord(s)
+            hval = (hval * fnv_32_prime) % uint32_max
+        return hval
 
 
     def djb2(self, key):
@@ -67,13 +74,24 @@ class HashTable:
         """
         # Your code here
 
+        ## source: https://gist.github.com/thrasr/54630f551585336f385f
+        
+        h = 3313  # arbitrary large prime number to initialize
+
+        for char in key:
+            # hash(i) = hash(i-1) * 33 + str[i]
+            h = ((h << 5) + h) + ord(char)
+
+        #return int(long(h)%long(size))  # python 2.7 needs some overflow magic
+        return h % self.capacity
+
 
     def hash_index(self, key):
         """
         Take an arbitrary key and return a valid integer index
         between within the storage capacity of the hash table.
         """
-        #return self.fnv1(key) % self.capacity
+        # return self.fnv1(key) % self.capacity
         return self.djb2(key) % self.capacity
 
     def put(self, key, value):
@@ -85,6 +103,8 @@ class HashTable:
         Implement this.
         """
         # Your code here
+        indx = self.hash_index(key)
+        self.data[indx] = value
 
 
     def delete(self, key):
@@ -96,6 +116,7 @@ class HashTable:
         Implement this.
         """
         # Your code here
+        self.put(key, None)
 
 
     def get(self, key):
@@ -107,6 +128,8 @@ class HashTable:
         Implement this.
         """
         # Your code here
+        indx = self.hash_index(key)
+        return self.data[indx]
 
 
     def resize(self, new_capacity):
