@@ -1,16 +1,13 @@
-from llist import Node, LinkedList
-
 class HashTableEntry:
     """
     Linked List hash table key/value pair
     """
+
     def __init__(self, key, value):
         self.key = key
         self.value = value
         self.next = None
 
-    def __repr__(self):
-        print(f'HashTableEntry({repr(self.key)},{repr(self.value)})')
 
 # Hash table can't have fewer than this many slots
 MIN_CAPACITY = 8
@@ -24,11 +21,11 @@ class HashTable:
     Implement this.
     """
 
-    def __init__(self, capacity):
-        # Your code here
+    def __init__(self, capacity=MIN_CAPACITY):
         self.capacity = capacity
-        self.data = [None] * self.capacity
-
+        # self.storage = [None] * self.capacity
+        self.storage = [[]
+                        for i in range(self.capacity)]  # for collision handling
 
     def get_num_slots(self):
         """
@@ -40,10 +37,7 @@ class HashTable:
 
         Implement this.
         """
-        # Your code here
-        return len(self.data)
-
-    num_items = 0
+        return self.capacity
 
     def get_load_factor(self):
         """
@@ -51,10 +45,11 @@ class HashTable:
 
         Implement this.
         """
-        # Your code here
-        if num_items / self.get_num_slots() > 0.7:
-            print("overloaded")
+        load_factor = self.storage / self.capacity
+        if load_factor > 0.7:
+            resize()
 
+        return load_factor
 
     def fnv1(self, key):
         """
@@ -64,14 +59,6 @@ class HashTable:
         """
 
         # Your code here
-        hval = "0x811c9dc5"
-        fnv_32_prime = "0x01000193"
-        uint32_max = 2 ** 32
-        for s in key:
-            hval = hval ** ord(s)
-            hval = (hval * fnv_32_prime) % uint32_max
-        return hval
-
 
     def djb2(self, key):
         """
@@ -79,19 +66,13 @@ class HashTable:
 
         Implement this, and/or FNV-1.
         """
-        # Your code here
+        hash = 5381
+        byte_array = key.encode('utf-8')
 
-        ## source: https://gist.github.com/thrasr/54630f551585336f385f
-        
-        h = 3313  # arbitrary large prime number to initialize
+        for byte in byte_array:
+            hash = ((hash * 33) ^ byte) % 0x100000000
 
-        for char in key:
-            # hash(i) = hash(i-1) * 33 + str[i]
-            h = ((h << 5) + h) + ord(char)
-
-        #return int(long(h)%long(size))  # python 2.7 needs some overflow magic
-        return h % self.capacity
-
+        return hash
 
     def hash_index(self, key):
         """
@@ -99,33 +80,33 @@ class HashTable:
         between within the storage capacity of the hash table.
         """
         # return self.fnv1(key) % self.capacity
+        hash = 0
+        for char in key:
+            hash += ord(char)
         return self.djb2(key) % self.capacity
 
-    def put(self, key, value):
+    def put(self, key, value):  # this is also known as setitem
         """
         Store the value with the given key.
 
         Hash collisions should be handled with Linked List Chaining.
 
         Implement this.
+
         """
-        # Your code here
+        h = self.hash_index(key)
+        # the following code is for day 1 (no collision resolution)
+        # self.storage[h] = value
 
-        # get the array index
-        indx = self.hash_index(key)
-
-        # put the value at that index
-        self.data[indx] = value
-
-        num_items += 1
-
-        # # if index is none
-        # if self.data[indx] == None:
-        # # start a linkedlist
-        #     self.data[indx] = LinkedList()
-        # # then insert as head
-        # self.data[indx].insert_at_head(Node(HashTableEntry(key, value)))
-
+        # the following code is for collision resolution
+        found = False
+        for index, element in enumerate(self.storage[h]):
+            if len(element) == 2 and element[0] == key:
+                self.storage[h][index] = (key, value)
+                found = True
+                break
+        if not found:
+            self.storage[h].append((key, value))
 
     def delete(self, key):
         """
@@ -135,13 +116,18 @@ class HashTable:
 
         Implement this.
         """
-        # Your code here
-        self.put(key, None)
+        # the following code doesn't have collision resolution
+        # h = self.hash_index(key)
+        # try:
+        #     self.storage[h] = None
+        # except KeyError:
+        #     return print('value not found in storage')
+        h = self.hash_index(key)
+        for index, element in enumerate(self.storage[h]):
+            if element[0] == key:
+                del self.storage[h][index]
 
-        num_items -= 1
-
-
-    def get(self, key):
+    def get(self, key):  # also known as getitem
         """
         Retrieve the value stored with the given key.
 
@@ -149,25 +135,18 @@ class HashTable:
 
         Implement this.
         """
-        # Your code here
+        # the following code doesn't have collision resolution
+        # h = self.hash_index(key)
+        # try:
+        #     return self.storage[h]
+        # except KeyError:
+        #     return None
 
-        # get the array index for that value
-        indx = self.hash_index(key)
-
-        # return the value at that index
-        return self.data[indx]
-
-        # # search the linkedlist at that index for a node that contains said key
-        # if self.data[indx].find(node.value) == key:
-        #     print("found!")
-
-
-        # return None
-
-
-
-
-
+        # the following code handles collision resolution
+        h = self.hash_index(key)
+        for element in self.storage[h]:
+            if element[0] == key:
+                return element[1]
 
     def resize(self, new_capacity):
         """
@@ -176,8 +155,9 @@ class HashTable:
 
         Implement this.
         """
-        # Your code here
+        self.capacity = new_capacity
 
+        return self.new_capacity
 
 
 if __name__ == "__main__":
